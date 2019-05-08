@@ -1,0 +1,121 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+</head>
+<body>
+
+</body>
+<script>
+    function WebSearchResult(_configData) {
+    var content = this;
+    var node = this.node = $(".webSearchContentBox");
+    var searchListTemp = node.find(".searchValueNodeTempelte").html();
+    this.nodeList = [];
+    this.pageSize = 10;
+    //node.find(".webSearchResult").divScroll({ gap: 70 });
+    var SearchNode = function (_data) {
+        var NodeContent = this;
+        var node = this.node = $("<div>").addClass("searchValueNode").append(searchListTemp);
+        var callback = null;
+        var type, reportId;
+        var data = _data;
+        this.remove = function () {
+            node.remove();
+        };
+        this.setBgColor = function (_color) {
+            node.addClass();
+        };
+        this.setConfig = function (_config) {
+            if (!_config) { return; }
+//          ONLYID = _config.ONLYID;
+//          type = _config.type;
+//          node.find(".searchValueNodeTitle").text("[" + _config.VALUE3 + "]" + _config.VALUE1).attr("title", _config.VALUE1);
+//          node.find(".searchValueNodeTip").text(_config.VALUE2);
+			ONLYID = _config.SQID ||_config.CID || _config.FWID;debugger
+            type = _config.CID==undefined?(_config.SQID!=undefined?"SQ":"FW"):"CUN";
+            var searchValueNodeTitle=node.find(".searchValueNodeTitle")
+            _config.SQC==undefined?(_config.MPH!=undefined?(searchValueNodeTitle.text("[" + _config.MPH + "]").attr("title", _config.MPH)):(searchValueNodeTitle.text("[" + _config.NAME + "]").attr("title", _config.NAME))):(searchValueNodeTitle.text("[" + _config.NAME + "]" + _config.SQC).attr("title", _config.NAME));
+        };
+        this.appendTo = function (_target) {
+            $(_target).append(node.get(0));
+        };
+        this.setCallback = function (_callback) {
+            callback = _callback;
+        };
+        node.click(function () {
+            if (callback) { callback(data); }
+        });
+        this.setConfig(_data);
+        node.find('.linktitletip').titletip({
+            className: 'titletip', liveEvents: true, showTimeout: 1, alignTo: 'target', alignX: 'center', alignY: 'bottom', offsetY: 10, allowTipHover: false
+        });
+    };
+    this.addInfo = function (_data) {
+        var searchNode = new SearchNode(_data);
+        searchNode.setCallback(nodeClickCallback);
+        searchNode.appendTo(node.find(".resultsBox").get(0));
+        this.nodeList.push(searchNode);
+    };
+    function nodeClickCallback(_data) {
+        if (typeof (CallbackForLeftSearchValue) === "function") {
+            CallbackForLeftSearchValue(_data);
+        }
+    }
+    this.empty = function () {
+        node.find(".resultsBox").empty();
+        this.nodeList = [];
+        //node.find(".webSearchResult").divScroll("update");
+    };
+    //加载数据
+    this.load = function (_subData) {//JsonSHAHELeftSearchRequest查询结果JsonGBDSearchRequest
+        var loadingBox = LoadingView({ target: content.node.get(0) });debugger
+        websocket.send("JsonGBDSearchRequest", $.extend({}, userData, _subData), function (_json) {
+            loadingBox.remove();
+            if (!Agreement.check(_json, function (_message) { AlertView(_message); })) { return false; }
+            var _data = _json.data.resultlist;
+            var pageConfig = _json.data.pageConfig;
+            content.pageSize = (pageConfig.pageSize ? pageConfig.pageSize : 10);
+            content.empty();
+            for (var i = 0; i < _data.length; i++) {
+                content.addInfo(_data[i]);
+            }
+            node.find(".webSearchResult")[_data.length ? "removeClass" : "addClass"]("empty"); //标记是不是没有数据
+            node.find(".searchValueBoxPage").empty().hide(0); //隐藏分页
+            if (pageConfig.totalPage > 1) {
+            	var layerSelect=$(".layerselect option:selected").val();
+                node.find(".searchValueBoxPage").show(0).jqPaginator({
+                    wrapper: '<div class="pagination"></div>',
+                    totalPages: pageConfig.totalPage,
+                    visiblePages: 5,
+                    currentPage: pageConfig.currentPage,
+                    first: '<a class="first" href="javascript:;">首页</a>',
+                    page: '<a class="page" href="javascript:;">{{page}}</a>',
+                    last: '<a class="last" href="javascript:;">尾页</a>',
+                    onPageChange: function (num, type) {
+                        if (type == "change") {debugger
+                            content.load({ currentPage: num, pageSize: content.pageSize, searchcontent: webSearchBox.searchValue,searchtable:layerSelect });
+                        }
+                        return true;
+                    }
+                });
+            }
+            //$(window).triggerHandler("resize"); //更改内容区域最大高度
+            //node.find(".webSearchResult").divScroll("update");
+        });
+    };
+    function initEvent() {
+        $(window).bind("resize", function () {
+            //node.find(".webSearchResult").css("max-height", $(".webSearchContentBox").height() - 120 - (node.find(".searchValueBoxPage").is(":hidden") ? 0 : 46));
+        });
+        content.node.find(".closeWebSearch").bind("click", function () {
+            webSearchBox.hideSearchData();
+        });
+        //$(window).triggerHandler("resize");
+    }
+    initEvent();
+}
+</script>
+</html>
